@@ -8,3 +8,8 @@ pub fn init() -> Result<()> {
     fs::write(".git/HEAD", "ref: refs/heads/master\n")?;
     Ok(())
 }
+
+pub fn cat_file(sha: &str) -> Result<()> {
+    dbg!(sha);
+    todo!("coming soon")
+}

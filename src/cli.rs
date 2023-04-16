@@ -4,6 +4,11 @@ use clap::Subcommand;
 #[derive(Subcommand, Debug)]
 pub enum Command {
     Init,
+
+    CatFile {
+        #[arg(short = 'p')]
+        part: String,
+    },
 }
 
 /// Simple program to greet a person

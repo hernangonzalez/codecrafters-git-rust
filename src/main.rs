@@ -8,5 +8,6 @@ fn main() -> Result<()> {
     let args = Cli::parse();
     match args.command {
         Command::Init => git::init(),
+        Command::CatFile { part } => git::cat_file(&part),
     }
 }
