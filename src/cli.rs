@@ -9,6 +9,11 @@ pub enum Command {
         #[arg(short = 'p')]
         part: String,
     },
+
+    HashObject {
+        #[arg(short = 'w')]
+        file: String,
+    },
 }
 
 /// Simple program to greet a person

@@ -9,5 +9,6 @@ fn main() -> Result<()> {
     match args.command {
         Command::Init => git::init(),
         Command::CatFile { part } => git::cat_file(&part),
+        Command::HashObject { file } => git::hash_object(&file),
     }
 }
