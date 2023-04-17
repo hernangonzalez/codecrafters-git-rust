@@ -1,11 +1,12 @@
+mod compress;
+mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
-use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
 use sha::Sha;
 use std::{
     fs,
-    io::{self, Read, Write},
+    io::{self, Write},
     path::Path,
 };
 
@@ -25,10 +26,7 @@ pub fn init() -> Result<()> {
 pub fn cat_file(sha: &str) -> Result<()> {
     let sha: Sha = sha.try_into()?;
     let data = fs::read(sha.path())?;
-
-    let mut decoder = ZlibDecoder::new(&data[..]);
-    let mut data = vec![];
-    decoder.read_to_end(&mut data)?;
+    let data = compress::decode(&data)?;
 
     let blob_ix = data
         .iter()
@@ -40,13 +38,6 @@ pub fn cat_file(sha: &str) -> Result<()> {
 
     io::stdout().write_all(blob)?;
     Ok(())
-}
-
-fn encode(data: Vec<u8>) -> Result<Vec<u8>> {
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(&data)?;
-    let data = encoder.finish()?;
-    Ok(data)
 }
 
 pub fn hash_object(filename: &str) -> Result<()> {
@@ -67,7 +58,7 @@ pub fn hash_object(filename: &str) -> Result<()> {
     let dir = path.parent().context("blob dir")?;
     fs::create_dir_all(dir)?;
 
-    let data = encode(data)?;
+    let data = compress::encode(&data)?;
     fs::write(path, data)?;
 
     io::stdout().write_all(hash.as_bytes())?;
