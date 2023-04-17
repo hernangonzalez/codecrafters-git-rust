@@ -47,3 +47,9 @@ pub fn hash_object(filename: &str) -> Result<()> {
     io::stdout().write_all(sha.as_bytes())?;
     Ok(())
 }
+
+pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
+    dbg!(sha);
+    dbg!(names);
+    todo!()
+}

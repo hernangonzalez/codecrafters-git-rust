@@ -14,6 +14,13 @@ pub enum Command {
         #[arg(short = 'w')]
         file: String,
     },
+
+    LsTree {
+        #[arg(long = "name-only")]
+        name_only: bool,
+
+        sha: String,
+    },
 }
 
 /// Simple program to greet a person

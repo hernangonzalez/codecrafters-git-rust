@@ -10,5 +10,6 @@ fn main() -> Result<()> {
         Command::Init => git::init(),
         Command::CatFile { part } => git::cat_file(&part),
         Command::HashObject { file } => git::hash_object(&file),
+        Command::LsTree { name_only, sha } => git::ls_tree(&sha, name_only),
     }
 }
