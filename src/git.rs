@@ -3,6 +3,7 @@ mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
+use object::Object;
 use sha::Sha;
 use std::{
     fs,
@@ -45,22 +46,14 @@ pub fn hash_object(filename: &str) -> Result<()> {
     ensure!(path.exists());
 
     let blob = fs::read(path)?;
+    let obj = Object::blob(blob);
+    let (sha, data) = obj.encode()?;
 
-    let mut data: Vec<u8> = vec![];
-    let header = format!("blob {}", blob.len());
-    data.write_all(header.as_bytes())?;
-    data.push(GIT_BLOB_DELIMITER);
-    data.write_all(&blob)?;
-    drop(blob);
-
-    let hash: Sha = (&data[..]).try_into()?;
-    let path = hash.path();
+    let path = sha.path();
     let dir = path.parent().context("blob dir")?;
     fs::create_dir_all(dir)?;
-
-    let data = compress::encode(&data)?;
     fs::write(path, data)?;
 
-    io::stdout().write_all(hash.as_bytes())?;
+    io::stdout().write_all(sha.as_bytes())?;
     Ok(())
 }
