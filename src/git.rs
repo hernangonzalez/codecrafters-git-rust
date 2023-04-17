@@ -14,7 +14,6 @@ use std::{
 const DIR_GIT: &str = ".git";
 const DIR_GIT_OBJECTS: &str = ".git/objects";
 const DIR_GIT_REFS: &str = ".git/refs";
-const GIT_BLOB_DELIMITER: u8 = b'\x00';
 
 pub fn init() -> Result<()> {
     fs::create_dir(DIR_GIT)?;
@@ -27,17 +26,8 @@ pub fn init() -> Result<()> {
 pub fn cat_file(sha: &str) -> Result<()> {
     let sha: Sha = sha.try_into()?;
     let data = fs::read(sha.path())?;
-    let data = compress::decode(&data)?;
-
-    let blob_ix = data
-        .iter()
-        .enumerate()
-        .find(|t| t.1 == &GIT_BLOB_DELIMITER)
-        .context("")?
-        .0;
-    let (_, blob) = data.split_at(blob_ix + 1);
-
-    io::stdout().write_all(blob)?;
+    let obj = Object::decode(data)?;
+    io::stdout().write_all(&obj.data)?;
     Ok(())
 }
 
