@@ -8,6 +8,11 @@ use std::io::Write;
 const GIT_BLOB_DELIMITER: u8 = b'\x00';
 const GIT_KIND_DELIMITER: char = ' ';
 
+pub trait Codable: Sized {
+    fn encode(&self) -> Result<(Sha, Vec<u8>)>;
+    fn decode(data: Vec<u8>) -> Result<Self>;
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Kind {
     Blob,
@@ -27,8 +32,10 @@ impl Object {
             data,
         }
     }
+}
 
-    pub fn encode(&self) -> Result<(Sha, Vec<u8>)> {
+impl Codable for Object {
+    fn encode(&self) -> Result<(Sha, Vec<u8>)> {
         let mut data: Vec<u8> = vec![];
         let header = format!("{} {}", self.kind, self.data.len());
         data.write_all(header.as_bytes())?;
@@ -40,7 +47,7 @@ impl Object {
         Ok((hash, data))
     }
 
-    pub fn decode(data: Vec<u8>) -> Result<Self> {
+    fn decode(data: Vec<u8>) -> Result<Self> {
         let data = compress::decode(&data)?;
         let blob_ix = data
             .iter()

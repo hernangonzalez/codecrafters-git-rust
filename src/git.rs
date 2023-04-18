@@ -3,7 +3,7 @@ mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
-use object::{Kind, Object};
+use object::{Codable, Kind, Object};
 use sha::Sha;
 use std::{
     fs,
