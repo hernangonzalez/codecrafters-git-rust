@@ -2,15 +2,19 @@ use super::compress;
 use super::sha::Sha;
 use anyhow::{Context, Result};
 use std::fmt::Display;
+use std::fs;
 use std::io::Write;
 
 const GIT_BLOB_DELIMITER: u8 = b'\x00';
 const GIT_KIND_DELIMITER: char = ' ';
 
+#[derive(Debug, PartialEq)]
 pub enum Kind {
     Blob,
+    Tree,
 }
 
+#[derive(Debug)]
 pub struct Object {
     pub kind: Kind,
     pub data: Vec<u8>,
@@ -61,6 +65,7 @@ impl Display for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Blob => write!(f, "blob"),
+            Self::Tree => write!(f, "tree"),
         }
     }
 }
@@ -70,7 +75,17 @@ impl TryFrom<&str> for Kind {
     fn try_from(value: &str) -> Result<Self> {
         match value {
             "blob" => Ok(Self::Blob),
-            _ => Err(anyhow::anyhow!("Unknown kind")),
+            "tree" => Ok(Self::Tree),
+            k => Err(anyhow::anyhow!("Unknown kind: {k}")),
         }
+    }
+}
+
+impl TryFrom<&Sha> for Object {
+    type Error = anyhow::Error;
+    fn try_from(sha: &Sha) -> Result<Self> {
+        let path = sha.path();
+        let blob = fs::read(path).context("read blob")?;
+        Object::decode(blob).context("decode blob")
     }
 }

@@ -3,6 +3,7 @@ use anyhow::{ensure, Result};
 use sha1::{Digest, Sha1};
 use std::path::Path;
 
+#[derive(Debug)]
 pub struct Sha(String);
 
 impl Sha {

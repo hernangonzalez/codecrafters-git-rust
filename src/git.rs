@@ -3,7 +3,7 @@ mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
-use object::Object;
+use object::{Kind, Object};
 use sha::Sha;
 use std::{
     fs,
@@ -25,8 +25,7 @@ pub fn init() -> Result<()> {
 
 pub fn cat_file(sha: &str) -> Result<()> {
     let sha: Sha = sha.try_into()?;
-    let data = fs::read(sha.path())?;
-    let obj = Object::decode(data)?;
+    let obj = Object::try_from(&sha)?;
     io::stdout().write_all(&obj.data)?;
     Ok(())
 }
@@ -49,7 +48,12 @@ pub fn hash_object(filename: &str) -> Result<()> {
 }
 
 pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
-    dbg!(sha);
-    dbg!(names);
+    ensure!(names, "Only names is supported");
+
+    let sha: Sha = sha.try_into()?;
+    let obj = Object::try_from(&sha)?;
+    ensure!(obj.kind == Kind::Tree, "Invalid object type");
+
+    dbg!(obj.kind);
     todo!()
 }
