@@ -1,53 +1,57 @@
+mod blob;
+mod kind;
+mod tree;
+
 use super::compress;
 use super::sha::Sha;
-use anyhow::{Context, Result};
-use std::fmt::Display;
+use anyhow::{ensure, Context, Result};
+pub use blob::Blob;
+use kind::Kind;
 use std::fs;
 use std::io::Write;
+pub use tree::Tree;
 
 const GIT_BLOB_DELIMITER: u8 = b'\x00';
-const GIT_KIND_DELIMITER: char = ' ';
+const GIT_KIND_DELIMITER: u8 = b' ';
 
-pub trait Codable: Sized {
-    fn encode(&self) -> Result<(Sha, Vec<u8>)>;
-    fn decode(data: Vec<u8>) -> Result<Self>;
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Kind {
-    Blob,
-    Tree,
-}
-
-#[derive(Debug)]
-pub struct Object {
-    pub kind: Kind,
-    pub data: Vec<u8>,
-}
-
-impl Object {
-    pub fn blob(data: Vec<u8>) -> Self {
-        Self {
-            kind: Kind::Blob,
-            data,
-        }
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
     }
 }
 
-impl Codable for Object {
-    fn encode(&self) -> Result<(Sha, Vec<u8>)> {
+#[derive(Debug)]
+pub struct Object(Kind, Vec<u8>);
+
+impl Object {
+    pub fn into_tree(self) -> Result<Tree> {
+        ensure!(self.0 == Kind::Tree);
+        Ok(Tree::new(self.1))
+    }
+
+    pub fn bytes(self) -> Vec<u8> {
+        self.1
+    }
+
+    pub fn blob(data: Vec<u8>) -> Self {
+        Self(Kind::Blob, data)
+    }
+}
+
+impl Object {
+    pub fn encode(&self) -> Result<(Sha, Vec<u8>)> {
+        let header = format!("{} {}", self.0, self.1.len());
         let mut data: Vec<u8> = vec![];
-        let header = format!("{} {}", self.kind, self.data.len());
         data.write_all(header.as_bytes())?;
         data.push(GIT_BLOB_DELIMITER);
-        data.write_all(&self.data)?;
+        data.write_all(&self.1)?;
 
         let hash: Sha = (&data[..]).try_into()?;
         let data = compress::encode(&data)?;
         Ok((hash, data))
     }
 
-    fn decode(data: Vec<u8>) -> Result<Self> {
+    pub fn decode(data: Vec<u8>) -> Result<Object> {
         let data = compress::decode(&data)?;
         let blob_ix = data
             .iter()
@@ -57,34 +61,9 @@ impl Codable for Object {
             .0;
         let (header, blob) = data.split_at(blob_ix + 1);
         let header = std::str::from_utf8(header)?;
-        let (kind, _) = header
-            .split_once(GIT_KIND_DELIMITER)
-            .context("object kind")?;
+        let (kind, _) = header.split_once(' ').context("object kind")?; // fixme!
         let kind = kind.try_into()?;
-        Ok(Self {
-            kind,
-            data: blob.to_vec(),
-        })
-    }
-}
-
-impl Display for Kind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Blob => write!(f, "blob"),
-            Self::Tree => write!(f, "tree"),
-        }
-    }
-}
-
-impl TryFrom<&str> for Kind {
-    type Error = anyhow::Error;
-    fn try_from(value: &str) -> Result<Self> {
-        match value {
-            "blob" => Ok(Self::Blob),
-            "tree" => Ok(Self::Tree),
-            k => Err(anyhow::anyhow!("Unknown kind: {k}")),
-        }
+        Ok(Object(kind, blob.to_vec()))
     }
 }
 

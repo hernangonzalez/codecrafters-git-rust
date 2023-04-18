@@ -3,7 +3,7 @@ mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
-use object::{Codable, Kind, Object};
+use object::Object;
 use sha::Sha;
 use std::{
     fs,
@@ -26,7 +26,7 @@ pub fn init() -> Result<()> {
 pub fn cat_file(sha: &str) -> Result<()> {
     let sha: Sha = sha.try_into()?;
     let obj = Object::try_from(&sha)?;
-    io::stdout().write_all(&obj.data)?;
+    io::stdout().write_all(&obj.bytes())?;
     Ok(())
 }
 
@@ -52,8 +52,10 @@ pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
 
     let sha: Sha = sha.try_into()?;
     let obj = Object::try_from(&sha)?;
-    ensure!(obj.kind == Kind::Tree, "Invalid object type");
+    let tree = obj.into_tree()?;
+    for item in tree.items() {
+        println!("{}", item.name);
+    }
 
-    dbg!(obj.kind);
-    todo!()
+    Ok(())
 }

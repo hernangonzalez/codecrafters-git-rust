@@ -23,11 +23,11 @@ impl Sha {
     }
 }
 
-impl TryInto<Sha> for &[u8] {
+impl TryFrom<&[u8]> for Sha {
     type Error = anyhow::Error;
-    fn try_into(self) -> Result<Sha> {
+    fn try_from(chunk: &[u8]) -> Result<Sha> {
         let mut hasher = Sha1::new();
-        hasher.update(self);
+        hasher.update(chunk);
         let result = hasher.finalize();
         let hash = hex::encode(result);
         Sha::new(hash)
