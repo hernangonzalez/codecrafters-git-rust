@@ -1,7 +1,17 @@
-use super::{Sha, GIT_BLOB_DELIMITER, GIT_KIND_DELIMITER};
+use super::{GitObject, Kind, Sha, GIT_BLOB_DELIMITER, GIT_KIND_DELIMITER};
 
 #[derive(Debug)]
 pub struct Tree(Vec<u8>);
+
+impl GitObject for Tree {
+    fn kind(&self) -> Kind {
+        Kind::Tree
+    }
+
+    fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
 
 #[derive(Debug)]
 pub struct TreeItem<'a> {

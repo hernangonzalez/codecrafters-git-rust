@@ -3,7 +3,7 @@ mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
-use object::Object;
+use object::{AnyObject, GitObject};
 use sha::Sha;
 use std::{
     fs,
@@ -25,8 +25,8 @@ pub fn init() -> Result<()> {
 
 pub fn cat_file(sha: &str) -> Result<()> {
     let sha: Sha = sha.try_into()?;
-    let obj = Object::try_from(&sha)?;
-    io::stdout().write_all(&obj.bytes())?;
+    let obj = AnyObject::try_from(&sha)?;
+    io::stdout().write_all(obj.bytes())?;
     Ok(())
 }
 
@@ -34,8 +34,7 @@ pub fn hash_object(filename: &str) -> Result<()> {
     let path = Path::new(filename);
     ensure!(path.exists());
 
-    let blob = fs::read(path)?;
-    let obj = Object::blob(blob);
+    let obj = AnyObject::try_from(path)?;
     let (sha, data) = obj.encode()?;
 
     let path = sha.path();
@@ -51,7 +50,7 @@ pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
     ensure!(names, "Only names is supported");
 
     let sha: Sha = sha.try_into()?;
-    let obj = Object::try_from(&sha)?;
+    let obj = AnyObject::try_from(&sha)?;
     let tree = obj.into_tree()?;
     for item in tree.items() {
         println!("{}", item.name);

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Kind {
     Blob,
     Tree,
