@@ -21,6 +21,8 @@ pub enum Command {
 
         sha: String,
     },
+
+    WriteTree,
 }
 
 /// Simple program to greet a person

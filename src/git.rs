@@ -59,3 +59,7 @@ pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
 
     Ok(())
 }
+
+pub fn write_tre() -> Result<()> {
+    todo!()
+}
