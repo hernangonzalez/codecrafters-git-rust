@@ -1,4 +1,4 @@
-mod compress;
+mod codec;
 mod object;
 mod sha;
 

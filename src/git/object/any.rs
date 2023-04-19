@@ -1,4 +1,4 @@
-use super::{compress, GitObject, Kind, Sha, Tree, GIT_BLOB_DELIMITER};
+use super::{codec, GitObject, Kind, Sha, Tree, GIT_BLOB_DELIMITER};
 use anyhow::{ensure, Context, Result};
 use std::{fs, path::Path};
 
@@ -39,7 +39,7 @@ impl TryFrom<&Path> for AnyObject {
 }
 
 fn decode(data: Vec<u8>) -> Result<AnyObject> {
-    let data = compress::decode(&data)?;
+    let data = codec::unzip(&data)?;
     let blob_ix = data
         .iter()
         .enumerate()

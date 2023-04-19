@@ -3,7 +3,7 @@ mod blob;
 mod kind;
 mod tree;
 
-use super::compress;
+use super::codec;
 use super::sha::Sha;
 pub use any::AnyObject;
 use anyhow::Result;
@@ -35,7 +35,7 @@ pub trait GitObject: Sized {
         data.write_all(bytes)?;
 
         let hash: Sha = (&data[..]).try_into()?;
-        let data = compress::encode(&data)?;
+        let data = codec::zip(&data)?;
         Ok((hash, data))
     }
 }
