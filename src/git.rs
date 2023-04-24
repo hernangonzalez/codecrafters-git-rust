@@ -3,7 +3,7 @@ mod object;
 mod sha;
 
 use anyhow::{ensure, Context, Result};
-use object::{AnyObject, GitObject};
+use object::{AnyObject, Blob, GitObject, Tree};
 use sha::Sha;
 use std::{
     fs,
@@ -59,6 +59,9 @@ pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn write_tre() -> Result<()> {
-    todo!()
+pub fn write_tree() -> Result<()> {
+    let path = Path::new(".");
+    let tree = Tree::read_path(path)?;
+    println!("{}", tree.header());
+    Ok(())
 }

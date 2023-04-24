@@ -1,4 +1,20 @@
+mod builder;
+mod scanner;
+mod writer;
+
 use super::{GitObject, Kind, Sha, GIT_BLOB_DELIMITER, GIT_KIND_DELIMITER};
+use anyhow::Result;
+use builder::TreeBuilder;
+use scanner::TreeScanner;
+use std::path::Path;
+use writer::Writer;
+
+#[derive(Debug)]
+pub struct TreeItem {
+    pub mode: String,
+    pub name: String,
+    pub sha: Sha,
+}
 
 #[derive(Debug)]
 pub struct Tree(Vec<u8>);
@@ -13,49 +29,18 @@ impl GitObject for Tree {
     }
 }
 
-#[derive(Debug)]
-pub struct TreeItem<'a> {
-    pub mode: &'a str,
-    pub name: &'a str,
-    pub sha: Sha,
-}
-
-impl<'a> Tree {
+impl Tree {
     pub fn new(inner: Vec<u8>) -> Self {
         Self(inner)
     }
 
-    pub fn items(&'a self) -> Vec<TreeItem<'a>> {
+    pub fn items(&self) -> Vec<TreeItem> {
         let scanner = TreeScanner { data: &self.0 };
         scanner.collect()
     }
-}
 
-struct TreeScanner<'a> {
-    data: &'a [u8],
-}
-
-impl<'a> Iterator for TreeScanner<'a> {
-    type Item = TreeItem<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let data = self.data;
-        let mode_at = data.iter().position(|b| *b == GIT_KIND_DELIMITER)?;
-        let (mode, data) = data.split_at(mode_at);
-        let mode = std::str::from_utf8(mode).ok()?;
-
-        let data = &data[1..];
-        let name_at = data.iter().position(|b| *b == GIT_BLOB_DELIMITER)?;
-        let (name, data) = data.split_at(name_at);
-        let name = std::str::from_utf8(name).ok()?;
-        let data = &data[1..];
-
-        let (hex, data) = data.split_at(20);
-        let hex = hex::encode(hex);
-        let sha: Sha = hex.as_str().try_into().ok()?;
-
-        let item = TreeItem { mode, name, sha };
-        self.data = data;
-        Some(item)
+    pub fn read_path(path: &Path) -> Result<Self> {
+        let builder = TreeBuilder::new(path);
+        builder.build()
     }
 }
