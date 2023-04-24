@@ -2,8 +2,9 @@ mod codec;
 mod object;
 mod sha;
 
+use self::codec::Package;
 use anyhow::{ensure, Context, Result};
-use object::{AnyObject, Blob, GitObject, Tree};
+use object::{Blob, Body, Object, ObjectBuilder, Tree};
 use sha::Sha;
 use std::{
     fs,
@@ -25,17 +26,19 @@ pub fn init() -> Result<()> {
 
 pub fn cat_file(sha: &str) -> Result<()> {
     let sha: Sha = sha.try_into()?;
-    let obj = AnyObject::try_from(&sha)?;
-    io::stdout().write_all(obj.bytes())?;
+    let obj = Object::unpack(&sha)?;
+    let Body::Blob(blob) = obj.body() else {
+        return Err(anyhow::anyhow!("Not a blob"));
+    };
+    io::stdout().write_all(blob.as_bytes())?;
     Ok(())
 }
 
 pub fn hash_object(filename: &str) -> Result<()> {
-    let path = Path::new(filename);
-    ensure!(path.exists());
-
-    let obj = AnyObject::try_from(path)?;
-    let (sha, data) = obj.encode()?;
+    let chunk = fs::read(filename)?;
+    let builder = ObjectBuilder::blob(&chunk);
+    let obj = builder.build()?;
+    let (sha, data) = obj.pack()?;
 
     let path = sha.path();
     let dir = path.parent().context("blob dir")?;
@@ -48,20 +51,20 @@ pub fn hash_object(filename: &str) -> Result<()> {
 
 pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
     ensure!(names, "Only names is supported");
-
     let sha: Sha = sha.try_into()?;
-    let obj = AnyObject::try_from(&sha)?;
-    let tree = obj.into_tree()?;
+    let obj = Object::unpack(&sha)?;
+    let Body::Tree(tree) = obj.body() else {
+        return Err(anyhow::anyhow!("Not a tree"));
+    };
     for item in tree.items() {
         println!("{}", item.name);
     }
-
     Ok(())
 }
 
 pub fn write_tree() -> Result<()> {
     let path = Path::new(".");
     let tree = Tree::read_path(path)?;
-    println!("{}", tree.header());
-    Ok(())
+    dbg!(tree);
+    todo!()
 }

@@ -1,26 +1,22 @@
-use super::{GitObject, Kind};
-use anyhow::{ensure, Result};
-use std::fs;
-use std::path::Path;
+use crate::git::codec::Codable;
+use anyhow::Result;
+use bytes::{BufMut, BytesMut};
 
 #[derive(Debug)]
 pub struct Blob(Vec<u8>);
 
-impl TryFrom<&Path> for Blob {
-    type Error = anyhow::Error;
-    fn try_from(path: &Path) -> Result<Self> {
-        ensure!(path.exists());
-        let data = fs::read(path)?;
-        Ok(Self(data))
+impl<'a> Blob {
+    pub fn as_bytes(&'a self) -> &'a [u8] {
+        &self.0
     }
 }
 
-impl GitObject for Blob {
-    fn kind(&self) -> Kind {
-        Kind::Blob
+impl Codable for Blob {
+    fn encode(&self, buffer: &mut BytesMut) {
+        buffer.put_slice(&self.0)
     }
 
-    fn bytes(&self) -> &[u8] {
-        &self.0
+    fn decode(chunk: &[u8]) -> Result<Self> {
+        Ok(Self(chunk.to_vec()))
     }
 }

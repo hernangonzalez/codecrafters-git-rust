@@ -1,28 +1,26 @@
+use crate::git::codec::Codable;
 use anyhow::Result;
-use std::fmt::Display;
+use bytes::BufMut;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Kind {
     Blob,
     Tree,
 }
 
-impl Display for Kind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Codable for Kind {
+    fn encode(&self, buffer: &mut bytes::BytesMut) {
         match self {
-            Self::Blob => write!(f, "blob"),
-            Self::Tree => write!(f, "tree"),
+            Self::Blob => buffer.put_slice(b"blob"),
+            Self::Tree => buffer.put_slice(b"tree"),
         }
     }
-}
 
-impl TryFrom<&str> for Kind {
-    type Error = anyhow::Error;
-    fn try_from(value: &str) -> Result<Self> {
-        match value {
-            "blob" => Ok(Self::Blob),
-            "tree" => Ok(Self::Tree),
-            k => Err(anyhow::anyhow!("Unknown kind: {k}")),
+    fn decode(chunk: &[u8]) -> Result<Self> {
+        match chunk {
+            b"blob" => Ok(Self::Blob),
+            b"tree" => Ok(Self::Tree),
+            k => Err(anyhow::anyhow!("Unknown kind: {k:?}")),
         }
     }
 }

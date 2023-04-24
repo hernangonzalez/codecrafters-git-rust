@@ -2,10 +2,12 @@ mod builder;
 mod scanner;
 mod writer;
 
-use super::{GitObject, Kind, Sha, GIT_BLOB_DELIMITER, GIT_KIND_DELIMITER};
+use crate::git::{codec::Codable, object::tree::scanner::TreeScanner};
+
+use super::{Sha, GIT_BLOB_DELIMITER, GIT_KIND_DELIMITER};
 use anyhow::Result;
 use builder::TreeBuilder;
-use scanner::TreeScanner;
+use bytes::BytesMut;
 use std::path::Path;
 use writer::Writer;
 
@@ -17,30 +19,29 @@ pub struct TreeItem {
 }
 
 #[derive(Debug)]
-pub struct Tree(Vec<u8>);
-
-impl GitObject for Tree {
-    fn kind(&self) -> Kind {
-        Kind::Tree
-    }
-
-    fn bytes(&self) -> &[u8] {
-        &self.0
-    }
+pub struct Tree {
+    items: Vec<TreeItem>,
 }
 
 impl Tree {
-    pub fn new(inner: Vec<u8>) -> Self {
-        Self(inner)
-    }
-
-    pub fn items(&self) -> Vec<TreeItem> {
-        let scanner = TreeScanner { data: &self.0 };
-        scanner.collect()
+    pub fn items(&self) -> &Vec<TreeItem> {
+        &self.items
     }
 
     pub fn read_path(path: &Path) -> Result<Self> {
         let builder = TreeBuilder::new(path);
         builder.build()
+    }
+}
+
+impl Codable for Tree {
+    fn encode(&self, buffer: &mut BytesMut) {
+        todo!()
+    }
+
+    fn decode(chunk: &[u8]) -> Result<Self> {
+        let scanner = TreeScanner { data: chunk };
+        let items = scanner.collect();
+        Ok(Self { items })
     }
 }
