@@ -1,10 +1,11 @@
 mod codec;
 mod object;
 mod sha;
+mod tree_builder;
 
 use self::codec::Package;
 use anyhow::{ensure, Context, Result};
-use object::{Blob, Body, Object, ObjectBuilder, Tree};
+use object::{Body, Object, ObjectBuilder};
 use sha::Sha;
 use std::{
     fs,
@@ -38,15 +39,7 @@ pub fn hash_object(filename: &str) -> Result<()> {
     let chunk = fs::read(filename)?;
     let builder = ObjectBuilder::blob(&chunk);
     let obj = builder.build()?;
-    let (sha, data) = obj.pack()?;
-
-    let path = sha.path();
-    let dir = path.parent().context("blob dir")?;
-    fs::create_dir_all(dir)?;
-    fs::write(path, data)?;
-
-    io::stdout().write_all(sha.as_bytes())?;
-    Ok(())
+    write_object(obj)
 }
 
 pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
@@ -64,7 +57,16 @@ pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
 
 pub fn write_tree() -> Result<()> {
     let path = Path::new(".");
-    let tree = Tree::read_path(path)?;
-    dbg!(tree);
-    todo!()
+    let tree = tree_builder::tree_at_path(path)?;
+    write_object(tree)
+}
+
+fn write_object(obj: Object) -> Result<()> {
+    let (sha, data) = obj.pack()?;
+    let path = sha.path();
+    let dir = path.parent().context("dir")?;
+    fs::create_dir_all(dir)?;
+    fs::write(path, data)?;
+    io::stdout().write_all(sha.as_bytes())?;
+    Ok(())
 }

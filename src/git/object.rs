@@ -3,11 +3,10 @@ mod kind;
 mod tree;
 
 use super::codec::{Codable, Package};
-use super::sha::Sha;
 use anyhow::{Context, Result};
 pub use blob::Blob;
 use bytes::{BufMut, BytesMut};
-use kind::Kind;
+pub use kind::Kind;
 pub use tree::{Tree, TreeItem};
 
 const GIT_BLOB_DELIMITER: u8 = b'\x00';
@@ -15,9 +14,15 @@ const GIT_KIND_DELIMITER: u8 = b' ';
 
 //// HEADER
 #[derive(Debug)]
-struct Header {
+pub struct Header {
     kind: Kind,
     size: usize,
+}
+
+impl Header {
+    pub fn new(kind: Kind, size: usize) -> Self {
+        Self { kind, size }
+    }
 }
 
 impl Codable for Header {
@@ -72,6 +77,10 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn new(header: Header, body: Body) -> Self {
+        Self { header, body }
+    }
+
     pub fn body(&self) -> &Body {
         &self.body
     }
