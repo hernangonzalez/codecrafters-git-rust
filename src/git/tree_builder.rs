@@ -2,14 +2,12 @@ use crate::git::{
     codec::{Codable, Package},
     object::{Body, Header, Kind, Object, ObjectBuilder, Tree, TreeItem},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bytes::BytesMut;
 use std::fs;
 use std::path::Path;
 
-pub fn tree_at_path(path: &Path) -> Result<Object> {
-    dbg!(path);
-
+pub fn tree_at_path(path: &Path, skip: &[&str]) -> Result<Object> {
     let entries = path.read_dir()?;
     let mut items: Vec<TreeItem> = Vec::with_capacity(entries.count());
 
@@ -18,19 +16,26 @@ pub fn tree_at_path(path: &Path) -> Result<Object> {
         let ftype = entry.file_type()?;
         let path = entry.path();
         let obj: Object;
+        let mode: &str;
+
+        if skip.contains(&entry.file_name().to_str().context("entry name")?) {
+            continue;
+        }
 
         if ftype.is_file() {
             let data = fs::read(path.clone())?;
             let builder = ObjectBuilder::blob(&data);
             obj = builder.build()?;
+            mode = "100644";
         } else if ftype.is_dir() {
-            obj = tree_at_path(&path)?;
+            obj = tree_at_path(&path, skip)?;
+            mode = "040000";
         } else {
             continue;
         }
 
         let (sha, _) = obj.pack()?;
-        let mode = "111".to_string();
+        let mode = mode.to_string();
         let name = path
             .file_name()
             .and_then(|s| s.to_str())
@@ -40,6 +45,7 @@ pub fn tree_at_path(path: &Path) -> Result<Object> {
         items.push(item);
     }
 
+    items.sort_by(|l, r| l.name.cmp(&r.name));
     let tree = Tree::new(items);
     let mut buffer = BytesMut::new();
     tree.encode(&mut buffer);

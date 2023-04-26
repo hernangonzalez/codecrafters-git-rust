@@ -47,6 +47,8 @@ impl TreeItem {
         buffer.put_u8(GIT_KIND_DELIMITER);
         buffer.put_slice(self.name.as_bytes());
         buffer.put_u8(GIT_BLOB_DELIMITER);
-        buffer.put_slice(self.sha.as_bytes());
+
+        let sha = hex::decode(self.sha.as_bytes()).unwrap();
+        buffer.put_slice(&sha);
     }
 }

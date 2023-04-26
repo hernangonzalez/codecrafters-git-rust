@@ -57,7 +57,8 @@ pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
 
 pub fn write_tree() -> Result<()> {
     let path = Path::new(".");
-    let tree = tree_builder::tree_at_path(path)?;
+    let skip = [".git"];
+    let tree = tree_builder::tree_at_path(path, &skip)?;
     write_object(tree)
 }
 
