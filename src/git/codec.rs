@@ -1,9 +1,8 @@
+use super::sha::Sha;
 use anyhow::{Context, Result};
 use bytes::BytesMut;
 use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
 use std::io::{Read, Write};
-
-use super::sha::Sha;
 
 pub fn unzip(data: &[u8]) -> Result<Vec<u8>> {
     let mut decoder = ZlibDecoder::new(data);
@@ -20,14 +19,14 @@ pub fn zip(data: &[u8]) -> Result<Vec<u8>> {
 }
 
 pub trait Codable: Sized {
-    fn encode(&self, buffer: &mut BytesMut);
+    fn encode(&self, buffer: &mut BytesMut) -> Result<()>;
     fn decode(chunk: &[u8]) -> Result<Self>;
 }
 
 pub trait Package: Codable {
     fn pack(&self) -> Result<(Sha, Vec<u8>)> {
         let mut buffer = BytesMut::new();
-        self.encode(&mut buffer);
+        self.encode(&mut buffer)?;
 
         let hash: Sha = (&buffer[..]).try_into()?;
         let data = zip(&buffer).context("zip")?;

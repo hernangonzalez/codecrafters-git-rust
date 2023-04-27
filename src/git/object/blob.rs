@@ -12,8 +12,9 @@ impl<'a> Blob {
 }
 
 impl Codable for Blob {
-    fn encode(&self, buffer: &mut BytesMut) {
-        buffer.put_slice(&self.0)
+    fn encode(&self, buffer: &mut BytesMut) -> Result<()> {
+        buffer.put_slice(&self.0);
+        Ok(())
     }
 
     fn decode(chunk: &[u8]) -> Result<Self> {

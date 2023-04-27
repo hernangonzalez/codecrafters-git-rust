@@ -2,7 +2,7 @@ mod scanner;
 
 use super::{GIT_BLOB_DELIMITER, GIT_KIND_DELIMITER};
 use crate::git::{codec::Codable, object::tree::scanner::TreeScanner, Sha};
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use bytes::{BufMut, BytesMut};
 
 #[derive(Debug)]
@@ -28,10 +28,11 @@ impl Tree {
 }
 
 impl Codable for Tree {
-    fn encode(&self, buffer: &mut BytesMut) {
+    fn encode(&self, buffer: &mut BytesMut) -> Result<()> {
         for item in &self.items {
-            item.encode(buffer)
+            item.encode(buffer)?
         }
+        Ok(())
     }
 
     fn decode(chunk: &[u8]) -> Result<Self> {
@@ -42,7 +43,7 @@ impl Codable for Tree {
 }
 
 impl TreeItem {
-    fn encode(&self, buffer: &mut BytesMut) {
+    fn encode(&self, buffer: &mut BytesMut) -> Result<()> {
         buffer.put_slice(self.mode.as_bytes());
         buffer.put_u8(GIT_KIND_DELIMITER);
         buffer.put_slice(self.name.as_bytes());
@@ -50,5 +51,6 @@ impl TreeItem {
 
         let sha = hex::decode(self.sha.as_bytes()).unwrap();
         buffer.put_slice(&sha);
+        Ok(())
     }
 }

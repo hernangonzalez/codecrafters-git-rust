@@ -9,11 +9,12 @@ pub enum Kind {
 }
 
 impl Codable for Kind {
-    fn encode(&self, buffer: &mut bytes::BytesMut) {
+    fn encode(&self, buffer: &mut bytes::BytesMut) -> Result<()> {
         match self {
             Self::Blob => buffer.put_slice(b"blob"),
             Self::Tree => buffer.put_slice(b"tree"),
-        }
+        };
+        Ok(())
     }
 
     fn decode(chunk: &[u8]) -> Result<Self> {

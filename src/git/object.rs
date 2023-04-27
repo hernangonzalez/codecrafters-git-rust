@@ -26,11 +26,12 @@ impl Header {
 }
 
 impl Codable for Header {
-    fn encode(&self, buffer: &mut BytesMut) {
-        self.kind.encode(buffer);
+    fn encode(&self, buffer: &mut BytesMut) -> Result<()> {
+        self.kind.encode(buffer)?;
         buffer.put_u8(GIT_KIND_DELIMITER);
         let size = self.size.to_string();
         buffer.put(size.as_bytes());
+        Ok(())
     }
 
     fn decode(chunk: &[u8]) -> Result<Self> {
@@ -61,7 +62,7 @@ impl Body {
         })
     }
 
-    fn encode(&self, buffer: &mut bytes::BytesMut) {
+    fn encode(&self, buffer: &mut bytes::BytesMut) -> Result<()> {
         match self {
             Self::Blob(b) => b.encode(buffer),
             Self::Tree(t) => t.encode(buffer),
@@ -101,10 +102,10 @@ impl Codable for Object {
         Ok(Self { header, body })
     }
 
-    fn encode(&self, buffer: &mut BytesMut) {
-        self.header.encode(buffer);
+    fn encode(&self, buffer: &mut BytesMut) -> Result<()> {
+        self.header.encode(buffer)?;
         buffer.put_u8(GIT_BLOB_DELIMITER);
-        self.body.encode(buffer);
+        self.body.encode(buffer)
     }
 }
 

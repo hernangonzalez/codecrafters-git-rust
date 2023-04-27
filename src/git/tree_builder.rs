@@ -7,6 +7,9 @@ use bytes::BytesMut;
 use std::fs;
 use std::path::Path;
 
+const GIT_MODE_FILE: &str = "100644";
+const GIT_MODE_FOLDER: &str = "40000";
+
 pub fn tree_at_path(path: &Path, skip: &[&str]) -> Result<Object> {
     let entries = path.read_dir()?;
     let mut items: Vec<TreeItem> = Vec::with_capacity(entries.count());
@@ -26,10 +29,10 @@ pub fn tree_at_path(path: &Path, skip: &[&str]) -> Result<Object> {
             let data = fs::read(path.clone())?;
             let builder = ObjectBuilder::blob(&data);
             obj = builder.build()?;
-            mode = "100644";
+            mode = GIT_MODE_FILE;
         } else if ftype.is_dir() {
             obj = tree_at_path(&path, skip)?;
-            mode = "040000";
+            mode = GIT_MODE_FOLDER;
         } else {
             continue;
         }
@@ -48,7 +51,7 @@ pub fn tree_at_path(path: &Path, skip: &[&str]) -> Result<Object> {
     items.sort_by(|l, r| l.name.cmp(&r.name));
     let tree = Tree::new(items);
     let mut buffer = BytesMut::new();
-    tree.encode(&mut buffer);
+    tree.encode(&mut buffer)?;
 
     let body = Body::Tree(tree);
     let header = Header::new(Kind::Tree, buffer.len());
