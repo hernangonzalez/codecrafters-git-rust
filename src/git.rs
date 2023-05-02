@@ -62,6 +62,13 @@ pub fn write_tree() -> Result<()> {
     write_object(tree)
 }
 
+pub fn commit_tree(sha: String, commit_sha: String, message: String) -> Result<()> {
+    dbg!(sha);
+    dbg!(commit_sha);
+    dbg!(message);
+    todo!()
+}
+
 fn write_object(obj: Object) -> Result<()> {
     let (sha, data) = obj.pack()?;
     let path = sha.path();

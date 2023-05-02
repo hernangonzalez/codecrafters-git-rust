@@ -12,5 +12,10 @@ fn main() -> Result<()> {
         Command::HashObject { file } => git::hash_object(&file),
         Command::LsTree { name_only, sha } => git::ls_tree(&sha, name_only),
         Command::WriteTree => git::write_tree(),
+        Command::CommitTree {
+            sha,
+            commit_sha,
+            message,
+        } => git::commit_tree(sha, commit_sha, message),
     }
 }

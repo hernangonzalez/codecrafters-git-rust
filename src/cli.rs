@@ -23,6 +23,16 @@ pub enum Command {
     },
 
     WriteTree,
+
+    CommitTree {
+        sha: String,
+
+        #[arg(short = 'p')]
+        commit_sha: String,
+
+        #[arg(short = 'm')]
+        message: String,
+    },
 }
 
 #[derive(Parser, Debug)]
