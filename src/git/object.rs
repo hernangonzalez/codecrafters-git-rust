@@ -1,11 +1,16 @@
 mod blob;
+mod commit;
 mod kind;
 mod tree;
 
-use super::codec::{Codable, Package};
+use super::{
+    codec::{Codable, Package},
+    Sha,
+};
 use anyhow::{Context, Result};
 pub use blob::Blob;
 use bytes::{BufMut, BytesMut};
+pub use commit::Commit;
 pub use kind::Kind;
 pub use tree::{Tree, TreeItem};
 
@@ -52,6 +57,7 @@ impl Codable for Header {
 pub enum Body {
     Blob(Blob),
     Tree(Tree),
+    Commit(Commit),
 }
 
 impl Body {
@@ -59,6 +65,7 @@ impl Body {
         Ok(match kind {
             Kind::Blob => Self::Blob(Blob::decode(chunk)?),
             Kind::Tree => Self::Tree(Tree::decode(chunk)?),
+            Kind::Commit => Self::Commit(Commit::decode(chunk)?),
         })
     }
 
@@ -66,6 +73,7 @@ impl Body {
         match self {
             Self::Blob(b) => b.encode(buffer),
             Self::Tree(t) => t.encode(buffer),
+            Self::Commit(c) => c.encode(buffer),
         }
     }
 }
@@ -84,6 +92,24 @@ impl Object {
 
     pub fn body(&self) -> &Body {
         &self.body
+    }
+
+    pub fn commit(tree: Sha, parent: Option<Sha>, message: String) -> Result<Self> {
+        let commit = Commit {
+            tree,
+            parent,
+            author: "Hernan Gonzalez".to_string(),
+            committer: "Hernan Gonzalez".to_string(),
+            message,
+        };
+        let body = Body::Commit(commit);
+        let mut data = BytesMut::new();
+        body.encode(&mut data)?;
+        let header = Header {
+            kind: Kind::Commit,
+            size: data.len(),
+        };
+        Ok(Self { header, body })
     }
 }
 
@@ -117,12 +143,11 @@ pub struct ObjectBuilder<'a> {
 }
 
 impl<'a> ObjectBuilder<'a> {
-    pub fn new(kind: Kind, data: &'a [u8]) -> Self {
-        Self { kind, data }
-    }
-
     pub fn blob(data: &'a [u8]) -> Self {
-        Self::new(Kind::Blob, data)
+        Self {
+            kind: Kind::Blob,
+            data,
+        }
     }
 
     pub fn build(&self) -> Result<Object> {
@@ -133,6 +158,7 @@ impl<'a> ObjectBuilder<'a> {
         let body = match self.kind {
             Kind::Blob => Body::Blob(Blob::decode(self.data)?),
             Kind::Tree => Body::Tree(Tree::decode(self.data)?),
+            Kind::Commit => Body::Commit(Commit::decode(self.data)?),
         };
         Ok(Object { header, body })
     }

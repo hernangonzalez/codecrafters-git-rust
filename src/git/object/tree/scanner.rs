@@ -21,7 +21,7 @@ impl<'a> Iterator for TreeScanner<'a> {
 
         let (hex, data) = data.split_at(20);
         let hex = hex::encode(hex);
-        let sha: Sha = hex.as_str().try_into().ok()?;
+        let sha: Sha = hex.as_str().parse().ok()?;
 
         let item = TreeItem { mode, name, sha };
         self.data = data;

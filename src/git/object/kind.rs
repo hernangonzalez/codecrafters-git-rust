@@ -6,6 +6,7 @@ use bytes::BufMut;
 pub enum Kind {
     Blob,
     Tree,
+    Commit,
 }
 
 impl Codable for Kind {
@@ -13,6 +14,7 @@ impl Codable for Kind {
         match self {
             Self::Blob => buffer.put_slice(b"blob"),
             Self::Tree => buffer.put_slice(b"tree"),
+            Self::Commit => buffer.put_slice(b"commit"),
         };
         Ok(())
     }
@@ -21,6 +23,7 @@ impl Codable for Kind {
         match chunk {
             b"blob" => Ok(Self::Blob),
             b"tree" => Ok(Self::Tree),
+            b"commit" => Ok(Self::Commit),
             k => Err(anyhow::anyhow!("Unknown kind: {k:?}")),
         }
     }

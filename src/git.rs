@@ -6,7 +6,7 @@ mod tree_builder;
 use self::codec::Package;
 use anyhow::{ensure, Context, Result};
 use object::{Body, Object, ObjectBuilder};
-use sha::Sha;
+pub use sha::Sha;
 use std::{
     fs,
     io::{self, Write},
@@ -26,7 +26,7 @@ pub fn init() -> Result<()> {
 }
 
 pub fn cat_file(sha: &str) -> Result<()> {
-    let sha: Sha = sha.try_into()?;
+    let sha: Sha = sha.parse()?;
     let obj = Object::unpack(&sha)?;
     let Body::Blob(blob) = obj.body() else {
         return Err(anyhow::anyhow!("Not a blob"));
@@ -42,10 +42,9 @@ pub fn hash_object(filename: &str) -> Result<()> {
     write_object(obj)
 }
 
-pub fn ls_tree(sha: &str, names: bool) -> Result<()> {
+pub fn ls_tree(sha: &Sha, names: bool) -> Result<()> {
     ensure!(names, "Only names is supported");
-    let sha: Sha = sha.try_into()?;
-    let obj = Object::unpack(&sha)?;
+    let obj = Object::unpack(sha)?;
     let Body::Tree(tree) = obj.body() else {
         return Err(anyhow::anyhow!("Not a tree"));
     };
@@ -62,11 +61,9 @@ pub fn write_tree() -> Result<()> {
     write_object(tree)
 }
 
-pub fn commit_tree(sha: String, commit_sha: String, message: String) -> Result<()> {
-    dbg!(sha);
-    dbg!(commit_sha);
-    dbg!(message);
-    todo!()
+pub fn commit_tree(tree: Sha, commit: Sha, message: String) -> Result<()> {
+    let obj = Object::commit(tree, Some(commit), message)?;
+    write_object(obj)
 }
 
 fn write_object(obj: Object) -> Result<()> {

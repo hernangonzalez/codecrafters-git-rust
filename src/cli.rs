@@ -1,3 +1,4 @@
+use crate::git::Sha;
 pub use clap::Parser;
 use clap::Subcommand;
 
@@ -19,16 +20,16 @@ pub enum Command {
         #[arg(long = "name-only")]
         name_only: bool,
 
-        sha: String,
+        sha: Sha,
     },
 
     WriteTree,
 
     CommitTree {
-        sha: String,
+        sha: Sha,
 
         #[arg(short = 'p')]
-        commit_sha: String,
+        commit_sha: Sha,
 
         #[arg(short = 'm')]
         message: String,

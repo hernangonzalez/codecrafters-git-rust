@@ -21,6 +21,12 @@ pub fn zip(data: &[u8]) -> Result<Vec<u8>> {
 pub trait Codable: Sized {
     fn encode(&self, buffer: &mut BytesMut) -> Result<()>;
     fn decode(chunk: &[u8]) -> Result<Self>;
+
+    fn encoded(&self) -> Result<BytesMut> {
+        let mut buffer = BytesMut::new();
+        self.encode(&mut buffer)?;
+        Ok(buffer)
+    }
 }
 
 pub trait Package: Codable {

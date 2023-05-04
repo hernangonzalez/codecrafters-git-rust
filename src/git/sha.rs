@@ -1,9 +1,9 @@
 use super::DIR_GIT_OBJECTS;
 use anyhow::{ensure, Result};
 use sha1::{Digest, Sha1};
-use std::path::Path;
+use std::{path::Path, str::FromStr};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Sha(String);
 
 impl Sha {
@@ -23,6 +23,13 @@ impl Sha {
     }
 }
 
+impl FromStr for Sha {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self> {
+        Self::new(s.to_string())
+    }
+}
+
 impl TryFrom<&[u8]> for Sha {
     type Error = anyhow::Error;
     fn try_from(chunk: &[u8]) -> Result<Sha> {
@@ -31,12 +38,5 @@ impl TryFrom<&[u8]> for Sha {
         let result = hasher.finalize();
         let hash = hex::encode(result);
         Sha::new(hash)
-    }
-}
-
-impl TryInto<Sha> for &str {
-    type Error = anyhow::Error;
-    fn try_into(self) -> Result<Sha> {
-        Sha::new(self.to_owned())
     }
 }
