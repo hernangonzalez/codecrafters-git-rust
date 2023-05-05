@@ -1,3 +1,4 @@
+mod clone;
 mod codec;
 mod object;
 mod sha;
@@ -6,6 +7,7 @@ mod tree_builder;
 use self::codec::Package;
 use anyhow::{ensure, Context, Result};
 use object::{Body, Object, ObjectBuilder};
+use reqwest::Url;
 pub use sha::Sha;
 use std::{
     fs,
@@ -64,6 +66,13 @@ pub fn write_tree() -> Result<()> {
 pub fn commit_tree(tree: Sha, commit: Sha, message: String) -> Result<()> {
     let obj = Object::commit(tree, Some(commit), message)?;
     write_object(obj)
+}
+
+pub fn clone(url: Url, target: String) -> Result<()> {
+    dbg!(url);
+    dbg!(target);
+
+    todo!()
 }
 
 fn write_object(obj: Object) -> Result<()> {

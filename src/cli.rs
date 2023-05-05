@@ -1,6 +1,7 @@
 use crate::git::Sha;
 pub use clap::Parser;
 use clap::Subcommand;
+use reqwest::Url;
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
@@ -33,6 +34,12 @@ pub enum Command {
 
         #[arg(short = 'm')]
         message: String,
+    },
+
+    Clone {
+        url: Url,
+
+        target: String,
     },
 }
 

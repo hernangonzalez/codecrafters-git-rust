@@ -17,5 +17,6 @@ fn main() -> Result<()> {
             commit_sha,
             message,
         } => git::commit_tree(sha, commit_sha, message),
+        Command::Clone { url, target } => git::clone(url, target),
     }
 }
