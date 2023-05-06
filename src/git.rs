@@ -4,7 +4,7 @@ mod object;
 mod sha;
 mod tree_builder;
 
-use self::codec::Package;
+use self::{clone::Repository, codec::Package};
 use anyhow::{ensure, Context, Result};
 use object::{Body, Object, ObjectBuilder};
 use reqwest::Url;
@@ -68,11 +68,11 @@ pub fn commit_tree(tree: Sha, commit: Sha, message: String) -> Result<()> {
     write_object(obj)
 }
 
-pub fn clone(url: Url, target: String) -> Result<()> {
-    dbg!(url);
-    dbg!(target);
-
-    todo!()
+pub async fn clone(url: Url, target: String) -> Result<()> {
+    std::fs::create_dir_all(&target)?;
+    let dir = Path::new(target.as_str());
+    let repo = Repository::new(url);
+    repo.clone_at(dir).await
 }
 
 fn write_object(obj: Object) -> Result<()> {

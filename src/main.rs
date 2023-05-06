@@ -4,7 +4,8 @@ mod git;
 use anyhow::Result;
 use cli::*;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = Cli::parse();
     match args.command {
         Command::Init => git::init(),
@@ -17,6 +18,6 @@ fn main() -> Result<()> {
             commit_sha,
             message,
         } => git::commit_tree(sha, commit_sha, message),
-        Command::Clone { url, target } => git::clone(url, target),
+        Command::Clone { url, target } => git::clone(url, target).await,
     }
 }
