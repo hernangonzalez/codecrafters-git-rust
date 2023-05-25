@@ -36,7 +36,6 @@ impl Codable for Commit {
         buffer.put_u8(GIT_COMMIT_NEWLINE);
         buffer.put_slice(self.message.as_bytes());
         buffer.put_u8(GIT_COMMIT_NEWLINE);
-        buffer.put_u8(GIT_COMMIT_NEWLINE);
 
         Ok(())
     }
