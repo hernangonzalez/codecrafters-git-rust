@@ -8,6 +8,7 @@ const GIT_PACK_NEWLINE: u8 = b'\n';
 const GIT_PACK_END: &[u8] = b"0000";
 const GIT_PACK_DONE: &[u8] = b"0009done";
 const HTTP_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
+const GIT_MESSAGE_PACK: &[u8] = b"0008NAK\n";
 
 pub struct GitTransfer {
     client: Client,
@@ -59,7 +60,13 @@ impl GitTransfer {
 
         let res = self.client.execute(req).await?;
         ensure!(res.status() == 200);
-        let bytes = res.bytes().await?;
-        Ok(bytes)
+
+        let mut bytes = res.bytes().await?;
+        ensure!(bytes.len() >= GIT_MESSAGE_PACK.len());
+
+        let pack = bytes.split_off(GIT_MESSAGE_PACK.len());
+        ensure!(bytes.eq(GIT_MESSAGE_PACK));
+
+        Ok(pack)
     }
 }

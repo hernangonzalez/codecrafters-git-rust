@@ -20,7 +20,9 @@ impl Repository {
         let net = GitTransfer::new(self.url);
         let refs = net.refs().await?;
         let pack = net.pack_from(&refs).await?;
+
         dbg!(pack.len());
+
         todo!()
     }
 }
