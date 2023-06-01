@@ -1,3 +1,4 @@
+mod pack;
 mod refs;
 mod transfer;
 
@@ -21,7 +22,7 @@ impl Repository {
         let refs = net.refs().await?;
         let pack = net.pack_from(&refs).await?;
 
-        dbg!(pack.len());
+        dbg!(pack);
 
         todo!()
     }

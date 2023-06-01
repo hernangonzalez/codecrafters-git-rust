@@ -1,6 +1,7 @@
+use super::pack::GitPack;
 use super::refs::GitRef;
 use anyhow::{ensure, Result};
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{BufMut, BytesMut};
 use reqwest::{header, Client, Url};
 
 const GIT_PACK_WANT: &[u8] = b"0032want ";
@@ -37,7 +38,7 @@ impl GitTransfer {
     }
 
     /// ref https://man.archlinux.org/man/gitprotocol-pack.5.en
-    pub async fn pack_from(&self, refs: &[GitRef]) -> Result<Bytes> {
+    pub async fn pack_from(&self, refs: &[GitRef]) -> Result<GitPack> {
         let url = format!("{}/git-upload-pack", self.remote);
 
         let mut body = BytesMut::new();
@@ -67,6 +68,6 @@ impl GitTransfer {
         let pack = bytes.split_off(GIT_MESSAGE_PACK.len());
         ensure!(bytes.eq(GIT_MESSAGE_PACK));
 
-        Ok(pack)
+        pack.try_into()
     }
 }
