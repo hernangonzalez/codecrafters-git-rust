@@ -91,7 +91,7 @@ fn file_size<'a>(stream: &mut impl Iterator<Item = &'a u8>) -> Result<PackItemDe
 
     let is_last_chunk = |x| (x & PARTIAL_MASK) == 0;
     let resolve_kind = |x| {
-        let raw_kind = x & KIND_MASK >> 4;
+        let raw_kind: u8 = (x & KIND_MASK) >> 4;
         match raw_kind {
             1 => Some(Kind::Commit),
             2 => Some(Kind::Tree),
@@ -134,10 +134,8 @@ fn file_size<'a>(stream: &mut impl Iterator<Item = &'a u8>) -> Result<PackItemDe
         bit_read_count += bit_offset;
     }
 
-    println!("be: {:#032b}", u32::to_be(value));
-
     Ok(PackItemDescriptor {
         kind: kind.context("kind")?,
-        size: value,
+        size: u32::from_le(value),
     })
 }
