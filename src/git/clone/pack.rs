@@ -100,30 +100,44 @@ fn file_size<'a>(stream: &mut impl Iterator<Item = &'a u8>) -> Result<PackItemDe
         }
     };
 
-    let mut parts: [u8; SIZE_LIMIT] = [0; SIZE_LIMIT];
+    let mut value: GitFileSize = 0;
     let mut kind = None;
+    let mut bit_read_count = 0;
+    let mut collected = false;
 
-    for (ix, size_byte) in parts.iter_mut().enumerate() {
-        let mut part = *stream.next().context("size part")?;
-        let collected = is_last_chunk(part);
+    while !collected && bit_read_count < (SIZE_LIMIT - 1) * 8 {
+        let mut part = *stream.next().context("byte")?;
+        collected = is_last_chunk(part);
+        let bit_offset: usize;
 
-        if ix == 0 {
+        // First byte is special
+        // Contains [partial:1] + [kind:3] + [data:4]
+        if bit_read_count == 0 {
             kind = resolve_kind(part);
             part &= !KIND_MASK;
+            bit_offset = 4;
+        }
+        // Remainings are [partial:1] + [data:7]
+        else {
+            bit_offset = 7;
         }
 
+        // Remove the MSB flag
         part &= !PARTIAL_MASK;
-        *size_byte = part;
 
-        if collected {
-            break;
-        } else if ix == SIZE_LIMIT - 1 {
-            return Err(anyhow::anyhow!("Not enough buffer to capture file size"));
-        }
+        // Shift data to the target offset
+        let mut data = part as GitFileSize;
+        data <<= bit_read_count;
+
+        // Copy bits into collected value
+        value |= data;
+        bit_read_count += bit_offset;
     }
+
+    println!("be: {:#032b}", u32::to_be(value));
 
     Ok(PackItemDescriptor {
         kind: kind.context("kind")?,
-        size: GitFileSize::from_le_bytes(parts),
+        size: value,
     })
 }
