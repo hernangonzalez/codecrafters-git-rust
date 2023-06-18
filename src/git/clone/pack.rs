@@ -1,9 +1,8 @@
-use crate::git::{codec, object::Kind, Sha};
-use anyhow::{ensure, Context, Ok, Result};
-use bytes::{Buf, Bytes};
-use std::mem::size_of;
+mod item;
 
-type GitFileSize = u32;
+use crate::git::sha::{Sha, SHA1_CHUNK_SIZE};
+use anyhow::{ensure, Ok, Result};
+use bytes::Bytes;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -45,113 +44,18 @@ impl Header {
 }
 
 fn build(bytes: Bytes) -> Result<GitPack> {
-    const CHECKSUM_SIZE: usize = 20;
-
     let mut bytes = bytes;
     let header = Header::build(&mut bytes)?;
 
-    ensure!(bytes.len() >= CHECKSUM_SIZE);
-    let checksum = bytes.split_off(bytes.len() - CHECKSUM_SIZE);
-    let checksum: Sha = Sha::try_from(&checksum[..])?;
+    ensure!(bytes.len() >= SHA1_CHUNK_SIZE);
+    let checksum = bytes.split_off(bytes.len() - SHA1_CHUNK_SIZE);
+    let checksum: Sha = Sha::try_from(checksum.as_ref())?;
 
     while !bytes.is_empty() {
-        let item = read_item(&mut bytes)?;
+        let item = item::read_from(&mut bytes)?;
         let desc = item.desc;
         println!("{:?} - {} - {}", desc.kind, desc.size, bytes.len());
     }
 
     Ok(GitPack { header, checksum })
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-struct PackItemDescriptor {
-    kind: Kind,
-    size: GitFileSize,
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-struct PackItem {
-    desc: PackItemDescriptor,
-    data: Vec<u8>,
-}
-
-fn read_item(bytes: &mut Bytes) -> Result<PackItem> {
-    let (desc, read) = read_desc(bytes)?;
-    bytes.advance(read);
-
-    let (data, read) = codec::unzip_count(bytes)?;
-    bytes.advance(read);
-
-    Ok(PackItem { desc, data })
-}
-
-fn read_desc(source: &[u8]) -> Result<(PackItemDescriptor, usize)> {
-    const PARTIAL_MASK: u8 = 0b10000000;
-    const KIND_MASK: u8 = 0b01110000;
-    const SIZE_LIMIT: usize = size_of::<GitFileSize>();
-
-    let mut stream = source.iter();
-    let is_last_chunk = |x| (x & PARTIAL_MASK) == 0;
-    let resolve_kind = |x| {
-        let raw_kind: u8 = (x & KIND_MASK) >> 4;
-        match raw_kind {
-            1 => Some(Kind::Commit),
-            2 => Some(Kind::Tree),
-            3 => Some(Kind::Blob),
-            6 => {
-                dbg!("OBJ_OFS_DELTA");
-                None
-            }
-            7 => {
-                dbg!("OBJ_REF_DELTA");
-                None
-            }
-            _ => None, // Tag: unsupported
-        }
-    };
-
-    let mut value: GitFileSize = 0;
-    let mut kind = None;
-    let mut bit_read_count = 0;
-    let mut collected = false;
-    let mut bytes_read = 0;
-
-    while !collected && bit_read_count < (SIZE_LIMIT - 1) * 8 {
-        let mut part = *stream.next().context("byte")?;
-        collected = is_last_chunk(part);
-        let bit_offset: usize;
-
-        // First byte is special
-        // Contains [partial:1] + [kind:3] + [data:4]
-        if bit_read_count == 0 {
-            kind = resolve_kind(part);
-            part &= !KIND_MASK;
-            bit_offset = 4;
-        }
-        // Remainings are [partial:1] + [data:7]
-        else {
-            bit_offset = 7;
-        }
-
-        // Remove the MSB flag
-        part &= !PARTIAL_MASK;
-
-        // Shift data to the target offset
-        let mut data = part as GitFileSize;
-        data <<= bit_read_count;
-
-        // Copy bits into collected value
-        value |= data;
-        bit_read_count += bit_offset;
-        bytes_read += 1;
-    }
-
-    let desc = PackItemDescriptor {
-        kind: kind.context("kind")?,
-        size: u32::from_le(value),
-    };
-
-    Ok((desc, bytes_read))
 }

@@ -1,4 +1,4 @@
-use crate::git::{codec::Codable, Sha};
+use crate::git::codec::Codable;
 use anyhow::Result;
 use bytes::BufMut;
 
@@ -9,8 +9,6 @@ pub enum Kind {
     Tree,
     Commit,
     Tag,
-    ObjectRef(Sha),
-    ObjectOffet(i32),
 }
 
 impl Codable for Kind {

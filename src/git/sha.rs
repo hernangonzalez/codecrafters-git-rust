@@ -1,10 +1,13 @@
 use super::DIR_GIT_OBJECTS;
 use anyhow::{ensure, Result};
+use bytes::{Buf, Bytes};
 use sha1::{Digest, Sha1};
 use std::{path::Path, str::FromStr};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Sha(String);
+
+pub const SHA1_CHUNK_SIZE: usize = 20;
 
 impl Sha {
     fn new(inner: String) -> Result<Self> {
@@ -21,6 +24,12 @@ impl Sha {
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    pub fn take_from(source: &mut Bytes) -> Result<Self> {
+        ensure!(source.len() >= SHA1_CHUNK_SIZE, "Not enough data");
+        let source = source.split_to(SHA1_CHUNK_SIZE);
+        source.chunk().try_into()
+    }
 }
 
 impl FromStr for Sha {
@@ -33,6 +42,7 @@ impl FromStr for Sha {
 impl TryFrom<&[u8]> for Sha {
     type Error = anyhow::Error;
     fn try_from(chunk: &[u8]) -> Result<Sha> {
+        ensure!(chunk.len() == SHA1_CHUNK_SIZE);
         let mut hasher = Sha1::new();
         hasher.update(chunk);
         let result = hasher.finalize();
