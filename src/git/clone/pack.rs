@@ -1,8 +1,8 @@
 use std::mem::size_of;
 
-use crate::git::{object::Kind, Sha};
-use anyhow::{ensure, Context, Result};
-use bytes::Bytes;
+use crate::git::{codec, object::Kind, Sha};
+use anyhow::{ensure, Context, Ok, Result};
+use bytes::{Buf, Bytes};
 
 const CHECKSUM_SIZE: usize = 20;
 type GitFileSize = u32;
@@ -54,13 +54,11 @@ fn build(bytes: Bytes) -> Result<GitPack> {
     let checksum = bytes.split_off(bytes.len() - CHECKSUM_SIZE);
     let checksum: Sha = Sha::try_from(&checksum[..])?;
 
-    let size = file_size(&mut bytes.iter())?;
-    dbg!(size);
-
-    // let files = PackFileList { chunk: bytes };
-    // for file in files {
-    //     dbg!(file);
-    // }
+    while !bytes.is_empty() {
+        let item = read_item(&mut bytes)?;
+        let desc = item.desc;
+        println!("{:?} - {} - {}", desc.kind, desc.size, bytes.len());
+    }
 
     Ok(GitPack { header, checksum })
 }
@@ -84,11 +82,29 @@ struct PackItemDescriptor {
     size: GitFileSize,
 }
 
-fn file_size<'a>(stream: &mut impl Iterator<Item = &'a u8>) -> Result<PackItemDescriptor> {
+#[allow(dead_code)]
+#[derive(Debug)]
+struct PackItem {
+    desc: PackItemDescriptor,
+    data: Vec<u8>,
+}
+
+fn read_item(bytes: &mut Bytes) -> Result<PackItem> {
+    let (desc, read) = read_desc(bytes)?;
+    bytes.advance(read);
+
+    let (data, read) = codec::unzip_count(bytes)?;
+    bytes.advance(read);
+
+    Ok(PackItem { desc, data })
+}
+
+fn read_desc(source: &[u8]) -> Result<(PackItemDescriptor, usize)> {
     const PARTIAL_MASK: u8 = 0b10000000;
     const KIND_MASK: u8 = 0b01110000;
     const SIZE_LIMIT: usize = size_of::<GitFileSize>();
 
+    let mut stream = source.iter();
     let is_last_chunk = |x| (x & PARTIAL_MASK) == 0;
     let resolve_kind = |x| {
         let raw_kind: u8 = (x & KIND_MASK) >> 4;
@@ -104,6 +120,7 @@ fn file_size<'a>(stream: &mut impl Iterator<Item = &'a u8>) -> Result<PackItemDe
     let mut kind = None;
     let mut bit_read_count = 0;
     let mut collected = false;
+    let mut bytes_read = 0;
 
     while !collected && bit_read_count < (SIZE_LIMIT - 1) * 8 {
         let mut part = *stream.next().context("byte")?;
@@ -132,10 +149,13 @@ fn file_size<'a>(stream: &mut impl Iterator<Item = &'a u8>) -> Result<PackItemDe
         // Copy bits into collected value
         value |= data;
         bit_read_count += bit_offset;
+        bytes_read += 1;
     }
 
-    Ok(PackItemDescriptor {
+    let desc = PackItemDescriptor {
         kind: kind.context("kind")?,
         size: u32::from_le(value),
-    })
+    };
+
+    Ok((desc, bytes_read))
 }

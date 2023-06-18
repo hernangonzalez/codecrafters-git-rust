@@ -5,10 +5,14 @@ use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
 use std::io::{Read, Write};
 
 pub fn unzip(data: &[u8]) -> Result<Vec<u8>> {
+    unzip_count(data).map(|x| x.0)
+}
+
+pub fn unzip_count(data: &[u8]) -> Result<(Vec<u8>, usize)> {
     let mut decoder = ZlibDecoder::new(data);
     let mut data = vec![];
     decoder.read_to_end(&mut data)?;
-    Ok(data)
+    Ok((data, decoder.total_in() as usize))
 }
 
 pub fn zip(data: &[u8]) -> Result<Vec<u8>> {
