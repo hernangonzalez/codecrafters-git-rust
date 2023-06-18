@@ -42,7 +42,6 @@ impl FromStr for Sha {
 impl TryFrom<&[u8]> for Sha {
     type Error = anyhow::Error;
     fn try_from(chunk: &[u8]) -> Result<Sha> {
-        ensure!(chunk.len() == SHA1_CHUNK_SIZE);
         let mut hasher = Sha1::new();
         hasher.update(chunk);
         let result = hasher.finalize();
