@@ -61,12 +61,13 @@ pub enum Body {
 }
 
 impl Body {
-    fn decode(kind: Kind, chunk: &[u8]) -> Result<Self> {
-        Ok(match kind {
-            Kind::Blob => Self::Blob(Blob::decode(chunk)?),
-            Kind::Tree => Self::Tree(Tree::decode(chunk)?),
-            Kind::Commit => Self::Commit(Commit::decode(chunk)?),
-        })
+    fn decode(kind: &Kind, chunk: &[u8]) -> Result<Self> {
+        match kind {
+            Kind::Blob => Ok(Self::Blob(Blob::decode(chunk)?)),
+            Kind::Tree => Ok(Self::Tree(Tree::decode(chunk)?)),
+            Kind::Commit => Ok(Self::Commit(Commit::decode(chunk)?)),
+            _ => Err(anyhow::anyhow!("not implemented")),
+        }
     }
 
     fn encode(&self, buffer: &mut bytes::BytesMut) -> Result<()> {
@@ -124,7 +125,7 @@ impl Codable for Object {
         let header = &chunk[..blob_ix];
         let body = &chunk[blob_ix + 1..];
         let header = Header::decode(header)?;
-        let body = Body::decode(header.kind, body)?;
+        let body = Body::decode(&header.kind, body)?;
         Ok(Self { header, body })
     }
 
@@ -150,15 +151,16 @@ impl<'a> ObjectBuilder<'a> {
         }
     }
 
-    pub fn build(&self) -> Result<Object> {
-        let header = Header {
-            kind: self.kind,
-            size: self.data.len(),
-        };
+    pub fn build(self) -> Result<Object> {
         let body = match self.kind {
             Kind::Blob => Body::Blob(Blob::decode(self.data)?),
             Kind::Tree => Body::Tree(Tree::decode(self.data)?),
             Kind::Commit => Body::Commit(Commit::decode(self.data)?),
+            _ => return Err(anyhow::anyhow!("not implemented")),
+        };
+        let header = Header {
+            kind: self.kind,
+            size: self.data.len(),
         };
         Ok(Object { header, body })
     }

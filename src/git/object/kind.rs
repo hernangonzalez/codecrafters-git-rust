@@ -1,12 +1,16 @@
-use crate::git::codec::Codable;
+use crate::git::{codec::Codable, Sha};
 use anyhow::Result;
 use bytes::BufMut;
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[allow(dead_code)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Kind {
     Blob,
     Tree,
     Commit,
+    Tag,
+    ObjectRef(Sha),
+    ObjectOffet(i32),
 }
 
 impl Codable for Kind {
@@ -15,6 +19,7 @@ impl Codable for Kind {
             Self::Blob => buffer.put_slice(b"blob"),
             Self::Tree => buffer.put_slice(b"tree"),
             Self::Commit => buffer.put_slice(b"commit"),
+            _ => return Err(anyhow::anyhow!("not implemented")),
         };
         Ok(())
     }

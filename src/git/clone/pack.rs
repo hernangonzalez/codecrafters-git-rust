@@ -1,10 +1,8 @@
-use std::mem::size_of;
-
 use crate::git::{codec, object::Kind, Sha};
 use anyhow::{ensure, Context, Ok, Result};
 use bytes::{Buf, Bytes};
+use std::mem::size_of;
 
-const CHECKSUM_SIZE: usize = 20;
 type GitFileSize = u32;
 
 #[allow(dead_code)]
@@ -47,6 +45,8 @@ impl Header {
 }
 
 fn build(bytes: Bytes) -> Result<GitPack> {
+    const CHECKSUM_SIZE: usize = 20;
+
     let mut bytes = bytes;
     let header = Header::build(&mut bytes)?;
 
@@ -61,18 +61,6 @@ fn build(bytes: Bytes) -> Result<GitPack> {
     }
 
     Ok(GitPack { header, checksum })
-}
-
-struct PackFileList {
-    _chunk: Bytes,
-}
-
-impl Iterator for PackFileList {
-    type Item = u32;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
-    }
 }
 
 #[allow(dead_code)]
@@ -112,7 +100,15 @@ fn read_desc(source: &[u8]) -> Result<(PackItemDescriptor, usize)> {
             1 => Some(Kind::Commit),
             2 => Some(Kind::Tree),
             3 => Some(Kind::Blob),
-            _ => None, // unsupported
+            6 => {
+                dbg!("OBJ_OFS_DELTA");
+                None
+            }
+            7 => {
+                dbg!("OBJ_REF_DELTA");
+                None
+            }
+            _ => None, // Tag: unsupported
         }
     };
 
